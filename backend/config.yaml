@@ -1,0 +1,43 @@
+# Configuration for Sidecut backend improvements
+paths:
+  output_dir: "outputs"
+
+limits:
+  max_file_mb: 2000
+
+audio:
+  sample_rate: 16000
+  noise_reduction: true
+  vad_aggressiveness: 2
+
+transcription:
+  chunk_duration: 60          # 60s chunks to reduce number of summarization steps
+  chunk_overlap: 0.0          # No overlap for speed
+  initial_beam_size: 1        # ONE option only (Greedy) = Fastest possible speed
+  retry_beam_size: 1          # No complex retries
+  temperature: 0.0
+  min_confidence: -0.5
+  max_retries: 2
+
+whisper:
+  engine: "faster_whisper"    # 'original' or 'faster_whisper'
+  model: "small"              # Good balance: Much better Arabic than tiny, still fast enough.
+
+summarization:
+  extractive_sentence_limit: 20
+  use_abstractive: true       # ENABLED for Hybrid Mode
+  model_strategy: "hybrid"    # Options: "single", "hybrid"
+  student_model_path: "backend/models/custom_mt5-small"
+  teacher_model_name: "csebuetnlp/mT5_multilingual_XLSum"
+  fallback_threshold: 0.35    # Score below which Teacher is triggered (Student usually > 0.4)
+  abstractive_max_length: 250 # shorter summaries = faster generation
+  abstractive_min_length: 60  # ensure detail
+  final_max_length: 600      # allow very long final summary
+
+performance:
+  parallel_chunks: 1          # Serial processing is faster on weak CPUs (avoids thrashing)
+  cache_enabled: true
+
+evaluation:
+  test_data_dir: "test_data"
+  ground_truth_dir: "test_data/ground_truth"

@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Arabic-friendly typography */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+.ltr {
+  direction: ltr;
+  text-align: left;
+}

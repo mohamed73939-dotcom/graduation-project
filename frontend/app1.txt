@@ -1,0 +1,132 @@
+# -------------------- Improved frontend/app.py (Streamlit) --------------------
+# RATIONALE:
+# - Professionalized the UI with sections and feedback.
+# - Added API_URL configuration (sidebar), defaults to http://localhost:8000.
+# - Uses language 'auto' by default to leverage backend language detection.
+# - Displays detected language, confidence, latency, and chunk metadata.
+# - Better error handling and user-friendly messages.
+# - Ensures correct multipart form submission and handles large files gracefully.
+
+import os
+import json
+import time
+import requests
+import streamlit as st
+
+st.set_page_config(
+    page_title="Sidecut - AI Video Summarizer",
+    page_icon="✂️",
+    layout="wide"
+)
+
+st.title("✂️ Sidecut - تلخيص المحاضرات بالذكاء الاصطناعي")
+st.caption("تلخيص فيديوهاتك بدقة ودعم العربية والإنجليزية")
+st.markdown("---")
+
+# Sidebar settings
+with st.sidebar:
+    st.header("⚙️ الإعدادات")
+    default_api = os.getenv("SIDECUT_API_URL", "http://localhost:8000")
+    api_url = st.text_input("API URL", value=default_api, help="مثال: http://localhost:8000")
+    language = st.selectbox(
+        "لغة المحاضرة",
+        ["auto", "ar", "en"],
+        index=0,
+        format_func=lambda x: {"ar": "🇸🇦 العربية", "en": "🇬🇧 English", "auto": "🌍 اكتشاف تلقائي"}[x]
+    )
+    st.markdown("---")
+    st.info("💡 ملاحظة: الفيديوهات الأصغر من 100MB تُعالج أسرع. الحد الأقصى 500MB.")
+    st.markdown("---")
+    st.write("السجلات محفوظة في مجلد logs/")
+
+# Upload
+uploaded_file = st.file_uploader("📤 ارفع ملف الفيديو (MP4, AVI, MOV, MKV, WEBM)", type=["mp4", "avi", "mov", "mkv", "webm"])
+
+# UI helpers
+def _show_result_section(result_data):
+    # Core fields returned by backend
+    summary = result_data.get("summary", "")
+    transcription = result_data.get("transcription", "")
+    detected_language = result_data.get("detected_language", "unknown")
+    confidence = result_data.get("confidence", {})
+    metrics = result_data.get("metrics", {})
+    chunk_meta = result_data.get("chunk_metadata", [])
+
+    st.success("✅ تم التلخيص بنجاح!")
+
+    # Summary section
+    st.subheader("📝 الملخص")
+    # Direction awareness: Right-to-left for Arabic
+    text_direction = "rtl" if detected_language == "ar" else "ltr"
+    st.markdown(
+        f'<div style="direction:{text_direction}; text-align:{ "right" if text_direction=="rtl" else "left" };">{summary}</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Download button
+    st.download_button(
+        label="⬇️ تحميل الملخص (TXT)",
+        data=summary or "",
+        file_name=f"summary.txt",
+        mime="text/plain"
+    )
+
+    # Metadata
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("اللغة المكتشفة", detected_language.upper())
+    with col2:
+        st.metric("المدة (ثواني)", f'{metrics.get("latency_seconds", 0.0):.2f}')
+
+    # Transcription preview
+    with st.expander("📄 النص الكامل (معاينة)"):
+        st.text(transcription)
+
+    # Chunk diagnostics
+    with st.expander("🔍 تفاصيل المقاطع (Chunks)"):
+        if chunk_meta:
+            st.write(f"عدد المقاطع: {len(chunk_meta)}")
+            st.dataframe(chunk_meta)
+        else:
+            st.write("لا توجد بيانات مقاطع متاحة.")
+
+# Main action
+if uploaded_file:
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.video(uploaded_file)
+    with col2:
+        st.info(f"**اسم الملف:** {uploaded_file.name}")
+        st.info(f"**الحجم:** {uploaded_file.size / (1024*1024):.2f} MB")
+
+        if st.button("🚀 ابدأ التلخيص", use_container_width=True):
+            if not api_url:
+                st.error("❌ الرجاء تحديد API URL صحيح.")
+            else:
+                with st.spinner("⏳ جاري المعالجة... قد يستغرق ذلك بعض الوقت حسب طول الفيديو والموديل"):
+                    try:
+                        # Important: pass the file as a tuple of (filename, file object, mimetype)
+                        files = {"video": (uploaded_file.name, uploaded_file, uploaded_file.type)}
+                        data = {"language": language}
+                        resp = requests.post(f"{api_url.rstrip('/')}/api/summarize", files=files, data=data, timeout=3600)
+                        if resp.status_code == 200:
+                            payload = resp.json()
+                            if payload.get("status") == "success":
+                                _show_result_section(payload["data"])
+                            else:
+                                st.error(f"❌ حدث خطأ: {payload.get('message', 'غير معروف')}")
+                        else:
+                            # Try to show server message if present
+                            try:
+                                err = resp.json()
+                                st.error(f"❌ خطأ: {err.get('message', resp.text)}")
+                            except Exception:
+                                st.error(f"❌ خطأ غير متوقع: {resp.text}")
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"❌ تعذر الاتصال بالخادم: {e}")
+else:
+    st.info("👆 قم برفع ملف فيديو لبدء التلخيص.")
+
+# Footer
+st.markdown("---")
+st.caption("© 2025 Sidecut — مفتوح المصدر. لتحسينات إضافية راجع الوثائق في README.md.")

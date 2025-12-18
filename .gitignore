@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Large Data & Archives
+*.zip
+*.parquet
+dataset.parquet
+archive (4).zip
+
+# Application dirs
+cache/
+logs/
+outputs/
+uploads/
+.gemini/
+
+# Large Models & Datasets
+backend/models/
+newModelDataset/
