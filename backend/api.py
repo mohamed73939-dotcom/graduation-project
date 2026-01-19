@@ -63,12 +63,11 @@ try:
             num_threads=default_threads
         )
     text_processor = TextProcessor()
-    # Updated to check for custom trained model first
-    # If running from backend directory, path is models/custom_mt5-small
-    custom_model_path = Path("models/custom_mt5-small") 
+    # Updated to check for central models directory first
+    custom_model_path = Path("../models/data/custom_mt5-small")
     if not custom_model_path.exists():
-         # Fallback to check relative to root if running from root
-         custom_model_path = Path("backend/models/custom_mt5-small")
+         # Fallback for when running from root or other contexts
+         custom_model_path = Path("models/data/custom_mt5-small")
          
     model_to_use = str(custom_model_path) if custom_model_path.exists() else CONFIG.get("summarization", {}).get("abstractive_model", "csebuetnlp/mT5_multilingual_XLSum")
     
@@ -287,15 +286,9 @@ async def summarize_video(
 
         loop = asyncio.get_event_loop()
         
-        # Parallel Execution: Audio Extraction & Slide Extraction
-        # We start slide extraction early as it scans the video
-        slide_task = loop.run_in_executor(
-            None, 
-            lambda: slide_extractor.extract_slides(
-                video_path, 
-                output_mode="text"  # We want both text and images (handles internally)
-            )
-        )
+        # Disable Slide Extraction (OCR) due to hanging
+        # slide_task = loop.run_in_executor(...)
+        slide_task = None
         
         # Offload audio extraction
         try:
@@ -363,13 +356,9 @@ async def summarize_video(
         formatted_text = text_processor.format_text(cleaned_text, add_paragraphs=True)
 
         # Retrieve Slide Results
-        try:
-            ocr_text, slides_data = await slide_task
-            api_logger.info(f"[{video_id}] Slide extraction complete. Found {len(slides_data)} slides.")
-        except Exception as e:
-            api_logger.error(f"Slide extraction failed: {e}")
-            ocr_text = ""
-            slides_data = []
+        # Slide Extraction Skipped
+        ocr_text = ""
+        slides_data = []
 
         summary, summary_meta = _grounded_summarize(cleaned_text, detected_lang, ocr_context=ocr_text)
         summary_incomplete = _summary_completeness_heuristic(summary)

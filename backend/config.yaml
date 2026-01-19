@@ -7,8 +7,8 @@ limits:
 
 audio:
   sample_rate: 16000
-  noise_reduction: true
-  vad_aggressiveness: 2
+  noise_reduction: false
+  vad_aggressiveness: 3
 
 transcription:
   chunk_duration: 60          # 60s chunks to reduce number of summarization steps
@@ -25,7 +25,7 @@ whisper:
 
 summarization:
   extractive_sentence_limit: 20
-  use_abstractive: true       # ENABLED for Hybrid Mode
+  use_abstractive: false       # DISABLED for Speed/Stability Check
   model_strategy: "hybrid"    # Options: "single", "hybrid"
   student_model_path: "backend/models/custom_mt5-small"
   teacher_model_name: "csebuetnlp/mT5_multilingual_XLSum"
@@ -35,7 +35,7 @@ summarization:
   final_max_length: 600      # allow very long final summary
 
 performance:
-  parallel_chunks: 1          # Serial processing is faster on weak CPUs (avoids thrashing)
+  parallel_chunks: 2          # Parallel processing enabled for speed
   cache_enabled: true
 
 evaluation:

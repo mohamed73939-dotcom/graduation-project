@@ -1,7 +1,7 @@
 @echo off
-TITLE Sidecut AI Launcher
+TITLE Sidecut AI Launcher (Modern UI)
 echo ==================================================
-echo       Sidecut ^| AI Video Summarizer Launcher
+echo       Sidecut ^| AI Video Summarizer (NiceGUI)
 echo ==================================================
 echo.
 
@@ -14,14 +14,14 @@ echo Waiting 5 seconds for backend to start...
 timeout /t 5 /nobreak >nul
 
 echo.
-start "Sidecut Frontend" cmd /k "python -m streamlit run frontend/streamlit-app/app.py"
+start "Sidecut Modern UI" cmd /k "python frontend/nice-ui/main.py"
 
 echo.
 echo ==================================================
 echo    Application is running!
-echo    - Frontend: http://localhost:8501
-echo    - Backend:  http://localhost:8000/docs
+echo    - UI: http://localhost:8080
+echo    - API: http://localhost:8000/docs
 echo ==================================================
 echo.
-echo You can close this window, but keep the other two command windows open.
+echo Please close any previous Sidecut windows before running this to avoid port conflicts.
 pause
